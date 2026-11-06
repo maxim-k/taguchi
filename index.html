@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang=en>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width, initial-scale=1">
+<title>Taguchi orthogonal array generator</title>
+<link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
+<style>/* design-system base.css. Paste verbatim into <style>; lint.py rejects any other CSS. */
+
+/* Palette: raw values, referenced only by the semantic tokens below. */
+:root {
+  --palette-black: #000;
+  --palette-white: #fff;
+  --palette-gray: #ddd;
+  --palette-blue: #0064f0;
+  --palette-yellow: #ffe100;
+  --palette-code: #f0f0f0;
+  /* Okabe-Ito, colorblind-safe; for chart marks only. */
+  --palette-orange: #e69f00;
+  --palette-green: #009e73;
+  --palette-ocean: #0072b2;
+  --palette-vermillion: #d55e00;
+  --palette-purple: #cc79a7;
+}
+
+/* Semantic tokens. */
+:root {
+  color-scheme: light;
+  --background: var(--palette-white);
+  --foreground: var(--palette-black);
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
+  --secondary: var(--background);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--background);
+  --muted-foreground: var(--foreground);
+  --accent: var(--palette-gray);
+  --accent-foreground: var(--foreground);
+  --destructive: var(--foreground);
+  --border: var(--palette-gray);
+  --input: var(--foreground);
+  --ring: var(--palette-blue);
+  --radius: 4px;
+  --link: var(--palette-blue);
+  --mark: var(--palette-yellow);
+  --code-background: var(--palette-code);
+  --chart-1: var(--palette-ocean);
+  --chart-2: var(--palette-orange);
+  --chart-3: var(--palette-green);
+  --chart-4: var(--palette-vermillion);
+  --chart-5: var(--palette-purple);
+
+  --font-sans: Inter, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;  /* GitHub's stack */
+  --measure: 40rem;          /* about 70 characters of Inter at 16px, code included */
+  --index-width: 300px;
+  --gutter: 64px;
+  --page-pad: 64px;
+  --page-pad-y: 96px;
+  --wide: 100%;              /* how far tables and figures may extend; set per layout below */
+  /* Two scales, each one ratio. Type: body 16 times 1.2 per heading level (h4 16, h3 19, h2 23,
+     h1 28), line height 1.2 times the size rounded up to 4px; tables and charts one step below
+     body, 13. Space before a heading: the 20px block gap times 4/3 per level (27 before an h4
+     and between list items that hold blocks, 36 before an h3, 48 before an h2); 8 from any
+     heading to its content.
+     Spacing is set by the gap the reader sees: from the bottom of one line's letters to the
+     top of the next line's letters (the font's content area, 1.21em for Inter), not between
+     boxes. Each margin below is its target minus the half-leading of the two neighbours,
+     half-leading = (line-height - 1.21 * font-size) / 2. */
+  /* Inter's metrics, measured from the served font: ascender 0.969em, cap height 0.7275em. */
+  --font-ascent: 0.969;
+  --font-cap: 0.7275;
+  /* The index pill's offset that puts its middle on the middle of the h1's capitals (28px h1, 28px pill):
+     h1 half-leading + (ascender - cap height) * 28px + half the cap height - half the pill. */
+  --pill-offset: calc(var(--lead-h1) + (var(--font-ascent) - var(--font-cap)) * 28px + var(--font-cap) * 14px - 14px);
+  --lead-p: calc((24px - 1.21 * 16px) / 2);
+  --lead-h1: calc((36px - 1.21 * 28px) / 2);
+  --lead-h2: calc((28px - 1.21 * 23px) / 2);
+  --lead-h3: calc((24px - 1.21 * 19px) / 2);
+  --lead-h4: calc((24px - 1.21 * 16px) / 2);
+  --space-section: calc(48px - var(--lead-p) - var(--lead-h2));     /* before an h2 */
+  --space-subsection: calc(36px - var(--lead-p) - var(--lead-h3));  /* before an h3 */
+  --space-part: calc(27px - var(--lead-p) - var(--lead-h4));        /* before an h4 */
+  --space-block: calc(20px - 2 * var(--lead-p));                    /* between blocks */
+  --space-item: calc(27px - 2 * var(--lead-p));                     /* between list items that hold blocks */
+  --space-after-h1: calc(8px - var(--lead-h1) - var(--lead-p));
+  --space-after-h2: calc(8px - var(--lead-h2) - var(--lead-p));
+  --space-after-h3: calc(8px - var(--lead-h3) - var(--lead-p));
+  --space-after-h4: calc(8px - var(--lead-h4) - var(--lead-p));
+}
+
+/* Type */
+* { box-sizing: border-box; }
+html { background: var(--background); }
+body {
+  margin: 0; padding: var(--page-pad-y) var(--page-pad);
+  font: 16px/24px var(--font-sans); color: var(--foreground); background: var(--background);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, p, ul, ol, pre, figure, table { margin: 0; }
+h1 { font-size: 28px; line-height: 36px; font-weight: 600; }
+h2 { font-size: 23px; line-height: 28px; font-weight: 600; }
+h3 { font-size: 19px; line-height: 24px; font-weight: 600; }
+h4 { font-size: 16px; line-height: 24px; font-weight: 600; }
+p, ul, ol { max-width: var(--measure); }
+ul, ol { padding-left: 24px; }
+li + li { margin-top: 4px; }
+/* A list item may hold blocks; they sit as blocks do, and such items sit further apart. */
+li:has(> :is(p, pre, table, figure, .row)) > * + * { margin-top: var(--space-block); }
+li:has(> :is(p, pre, table, figure, .row)) + li { margin-top: var(--space-item); }
+/* Code as in GitHub markdown: monospace at 85%, on a light grey background. Matching x-heights
+   (font-size-adjust) left monospace at full size, and its wider letters read larger than the text. */
+code, pre { font-family: var(--font-mono); font-size: 85%; background: var(--code-background); }
+pre { max-width: var(--measure); padding-left: 0.5rem; white-space: pre-wrap; }
+pre code { font-size: 100%; background: none; }
+a { color: var(--link); text-decoration: underline 1px; text-underline-offset: 0.2em;
+    text-decoration-color: color-mix(in srgb, var(--link) 30%, transparent); }
+a:hover { text-decoration-color: var(--link); }
+mark { background: var(--mark); color: var(--foreground); }
+/* Even line endings: pretty avoids short last lines in prose, balance evens out headings. */
+p, li, nav.index a { text-wrap: pretty; }
+h1, h2, h3, h4 { text-wrap: balance; }
+
+/* Layout, the same on every page: main is centered in the window, and the left column holds
+   the table of contents when the page has one, so adding it moves nothing. The side columns
+   are equal, so main stays centered; the left one never gets narrower than the table of
+   contents plus the gutter, so on a narrow window main moves right instead of covering it.
+   Tables and charts wider than main extend into the right column, up to the page padding
+   (and 16px of room for a scrollbar); images and rows stay within main. */
+body {
+  --room: calc(100vw - 2 * var(--page-pad) - 16px);
+  --wide: min((var(--room) + var(--measure)) / 2, var(--room) - var(--index-width) - var(--gutter));
+  display: grid;
+  grid-template-columns: minmax(calc(var(--index-width) + var(--gutter)), 1fr) minmax(0, var(--measure)) 1fr;
+}
+body > nav.index { grid-column: 1; width: var(--index-width); }
+main { grid-column: 2; min-width: 0; }
+table, figure, .data-table { width: max-content; max-width: var(--wide); }
+figure:has(> img) { max-width: 100%; }  /* an image keeps its own size, scaled down to main's width */
+/* The index sticks as a whole; only its list scrolls, so the pill above the list stays in view.
+   It is at most the window minus the page's bottom padding tall: a sticky element cannot pass the
+   end of main, so a full-window index would be pushed up off the screen on the last screen. */
+nav.index { position: sticky; top: 0; align-self: start; max-height: calc(100vh - var(--page-pad-y));
+            display: flex; flex-direction: column; background: var(--background); }
+nav.index ol { list-style: none; padding: 0; max-width: none; }
+nav.index > ol { overflow-y: auto; min-height: 0; padding-bottom: 24px; }
+nav.index ol ol { padding-left: 16px; }
+nav.index li { margin-top: 4px; }
+nav.index a { display: block; padding-left: 16px; text-indent: -16px;  /* hanging indent for wrapped entries */
+              color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+nav.index a[aria-current] { color: var(--link); }
+
+/* Fingerprint, optional: page.js draws it, at the top of the index, or of main when there is no index.
+   In the index it collapses to a strip once the page scrolls; page.js redraws it at that size. */
+.fingerprint { width: 136px; height: 28px; }
+html.scrolled nav.index .fingerprint { height: 8px; }
+.fingerprint svg { display: block; }
+/* In the index the pill spans the column, and its middle sits on the middle of the h1's capitals. */
+nav.index .fingerprint { flex: none; width: 100%; margin-top: var(--pill-offset); margin-bottom: 24px; }
+
+/* Spacing comes from the container, never from the element. */
+main > * + * { margin-top: var(--space-block); }
+main > * + section { margin-top: var(--space-section); }
+header > * + * { margin-top: var(--space-block); }
+header > h1 + * { margin-top: var(--space-after-h1); }
+section > * + * { margin-top: var(--space-block); }
+section > * + section { margin-top: var(--space-subsection); }
+section > h2 + * { margin-top: var(--space-after-h2); }
+section > h3 + * { margin-top: var(--space-after-h3); }
+section section > * + section { margin-top: var(--space-part); }
+section > h4 + * { margin-top: var(--space-after-h4); }
+/* A heading directly above a subheading. */
+section > h2 + section, section section > h3 + section { margin-top: var(--space-block); }
+
+/* Tables: denser than prose, 13/20, one step below body text. */
+table { border-collapse: collapse; font-size: 13px; line-height: 20px;
+        font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: 6px 24px 6px 0; overflow-wrap: break-word; }
+th:last-child, td:last-child { padding-right: 0; }
+/* No padding above the header row: a table's letters start at its top edge, like a paragraph's. */
+thead th { font-weight: 400; padding-top: 0; border-bottom: 1px solid var(--foreground); background: var(--background); }
+td, tbody th { border-bottom: 1px solid var(--border); }
+tbody th { font-weight: 400; }  /* field names in a field table */
+.num { text-align: right; }
+tr.group th { font-weight: 600; padding-top: 16px; border-bottom: 1px solid var(--border); }
+tbody tr.group:first-child th { padding-top: 6px; }
+
+/* Data tables: page.js builds them. The header row stays on top while the rows scroll under it. */
+.data-table-tools { position: relative; display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
+.data-table-menu { position: absolute; top: 40px; right: 0; z-index: 2; display: flex; flex-direction: column; gap: 4px;
+                   max-height: 60vh; overflow-y: auto; padding: 8px 16px; background: var(--popover);
+                   border: 1px solid var(--foreground); border-radius: var(--radius); font-size: 13px; }
+.data-table-menu[hidden] { display: none; }
+.data-table-scroll { overflow: auto; max-height: calc(100vh - 160px); }
+.data-table-scroll table { max-width: none; }
+.data-table-scroll thead th { position: sticky; top: 0; z-index: 1; }
+.data-table-pager { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; }
+thead th > button { all: unset; cursor: pointer; }
+th[aria-sort=ascending] > button::after { content: " ↑"; }
+th[aria-sort=descending] > button::after { content: " ↓"; }
+button:disabled { opacity: 0.4; cursor: default; }
+
+/* Images and charts. A row splits main's width into equal shares. */
+figure img, figure svg { display: block; max-width: 100%; height: auto; }
+figure svg { font: 13px/1 var(--font-sans); }  /* chart text matches table text */
+.row > figure { width: auto; max-width: none; min-width: 0; }
+.row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); column-gap: 24px; }
+
+/* Data table controls: page.js builds them. */
+label { display: inline-flex; gap: 8px; align-items: center; }
+input, button { font: inherit; color: inherit; }
+input[type=search], button {
+  height: 32px; padding: 0 8px; background: var(--background);
+  border: 1px solid var(--input); border-radius: var(--radius);
+}
+input[type=checkbox] { accent-color: var(--foreground); margin: 0; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* Narrow screens: the index sits above the content as a plain list. */
+@media (max-width: 1000px) {
+  body { padding: 48px 16px; }
+  body { display: block; --wide: 100%; }
+  body > nav.index { width: auto; }
+  nav.index { position: static; max-height: none; margin: 0 0 var(--space-section); }
+  nav.index > ol { overflow-y: visible; padding-bottom: 0; }
+  .row { grid-auto-flow: row; row-gap: 24px; }
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Taguchi orthogonal array generator</h1>
+<p>This page tells you which tests to run when you want to find the best settings for a process. You enter the factors, which are the settings that you can change, and the levels, which are the values that you want to try. After you enter your test results, the page shows the best level of each factor.</p>
+</header>
+<section id=why>
+<h2>Why few tests are enough</h2>
+<p>Testing every combination of 4 factors with 3 levels each takes 81 tests. A common shortcut is to start from one combination and change one factor at a time. That takes 9 tests, but most levels appear in only 1 test, so one measurement error can change your conclusion.</p>
+<p>This page uses Taguchi orthogonal arrays, which are standard tables of tests. An array for the same experiment also takes 9 tests, but it changes several factors in each test. Every level appears in 3 tests, and the other factors are balanced across those tests, so you can compare averages to see the effect of each factor.</p>
+<p>This method assumes that each factor affects the result independently. If the effect of one factor depends on the level of another factor, the result can be misleading.</p>
+</section>
+<section id=factors>
+<h2>Enter your factors</h2>
+<p>Replace the following example with your own factors. On each line, write the name of one factor, a colon, and then its levels, separated by commas. A factor can have 2 to 5 levels. The test plan updates as you type.</p>
+<pre id=input contenteditable=plaintext-only role=textbox aria-multiline=true aria-label="Factors and levels" spellcheck=false>Temperature: 150, 175, 200
+Pressure: low, medium, high
+Catalyst: A, B, C</pre>
+</section>
+<section id=plan>
+<h2>Run the tests</h2>
+<p id=summary>This page needs JavaScript to build the test plan.</p>
+<ol id=steps>
+<li>Do the tests in the following table in a random order. A random order keeps slow changes in your equipment from looking like the effect of a factor.</li>
+<li>For each test, set each factor to the level in its row, and then measure the result.</li>
+<li>Enter each result in the Score column.</li>
+<li><a id=download href="#">Download the test plan and your scores as a CSV file.</a> The page saves nothing, so reloading the page clears your scores.</li>
+</ol>
+</section>
+<section id=results>
+<h2>Find the best levels</h2>
+<p id=status>This page needs JavaScript to read your scores.</p>
+<p id=reading>For each factor, the page averages the scores of the tests at each level. The following table shows the levels with the highest and lowest averages, and the difference between them. A larger difference means that the factor changes the score more.</p>
+<p id=choice>If a higher score is better, use the levels with the highest averages. If a lower score is better, use the levels with the lowest averages. Your plan might not include this combination, so do one more test with it to confirm the result.</p>
+</section>
+</main>
+<script id=logic>
+// Builds an array from its columns and names it, for example "L18 (2^1 3^7)".
+function makeArray(columns) {
+  const runs = columns[0].values.length;
+  const counts = {};
+  for (const c of columns) counts[c.levels] = (counts[c.levels] || 0) + 1;
+  const shape = Object.entries(counts).map(([levels, n]) => `${levels}^${n}`).join(" ");
+  return { name: `L${runs} (${shape})`, runs, columns };
+}
+
+// Taguchi's two-, three- and five-level arrays are linear combinations of base columns modulo p.
+// Factors fill the base columns first, then the column that combines all of them, then the rest,
+// so that a main effect shares a column with a two-factor interaction as late as possible.
+function power(p, k) {
+  const digits = (x, n) => Array.from({ length: n }, (_, i) => Math.floor(x / p ** i) % p);
+  const columns = [];
+  for (let lead = 0; lead < k; lead++) {
+    for (let c = 0; c < p ** lead; c++) {
+      const coefficients = [...digits(c, lead), 1, ...Array(k - lead - 1).fill(0)];
+      const values = Array.from({ length: p ** k }, (_, run) => {
+        const base = digits(run, k).reverse();
+        return coefficients.reduce((sum, a, i) => sum + a * base[i], 0) % p + 1;
+      });
+      columns.push({ levels: p, values, coefficients });
+    }
+  }
+  const rank = (c) => {
+    const weight = c.coefficients.filter(Boolean).length;
+    return weight === 1 ? Infinity : weight;
+  };
+  columns.sort((a, b) => rank(b) - rank(a));
+  return makeArray(columns);
+}
+
+// The published arrays that have no such construction, one string per run.
+function listed(rows) {
+  const columns = [...rows[0]].map((_, i) => {
+    const values = rows.map((row) => Number(row[i]));
+    return { levels: Math.max(...values), values };
+  });
+  return makeArray(columns);
+}
+
+// Smallest first, because fit() takes the first array that holds every factor.
+const ARRAYS = [
+  power(2, 2),
+  power(2, 3),
+  listed(["11111", "12222", "21122", "22211", "31212", "32121", "41221", "42112"]),
+  power(3, 2),
+  listed([
+    "11111111111", "11111222222", "11222111222", "12122122112", "12212212121", "12221221211",
+    "21221122121", "21212221112", "21122212211", "22211112212", "22121211122", "22112121221",
+  ]),
+  power(2, 4),
+  listed([
+    "11111", "12222", "13333", "14444", "21234", "22143", "23412", "24321",
+    "31342", "32431", "33124", "34213", "41423", "42314", "43241", "44132",
+  ]),
+  listed([
+    "11111111", "11222222", "11333333", "12112233", "12223311", "12331122",
+    "13121323", "13232131", "13313212", "21133221", "21211332", "21322113",
+    "22123132", "22231213", "22312321", "23132312", "23213123", "23321231",
+  ]),
+  power(5, 2),
+  power(3, 3),
+  power(2, 5),
+];
+
+// Reads "Name: level, level" lines. Throws an Error with a message for the user.
+function parse(text) {
+  const factors = [];
+  text.split("\n").forEach((line, i) => {
+    if (!line.trim()) return;
+    const colon = line.indexOf(":");
+    const name = line.slice(0, colon).trim();
+    const levels = line.slice(colon + 1).split(",").map((l) => l.trim()).filter(Boolean);
+    if (colon < 0 || !name || levels.length < 2) {
+      throw new Error(`Line ${i + 1} needs a name, a colon, and at least two levels, such as "Pressure: low, high".`);
+    }
+    factors.push({ name, levels });
+  });
+  if (!factors.length) throw new Error("Enter at least one factor.");
+  return factors;
+}
+
+// Returns the smallest array that holds the factors, and the column for each factor, or null.
+// A factor can take a column with more levels than it has; see build().
+function fit(levelCounts) {
+  const largestFirst = levelCounts.map((_, i) => i).sort((a, b) => levelCounts[b] - levelCounts[a]);
+  for (const array of ARRAYS) {
+    const free = [...array.columns];
+    const columns = [];
+    const fits = largestFirst.every((factor) => {
+      const usable = free.filter((c) => c.levels >= levelCounts[factor]);
+      if (!usable.length) return false;
+      const best = usable.reduce((a, b) => (b.levels < a.levels ? b : a));
+      free.splice(free.indexOf(best), 1);
+      columns[factor] = best;
+      return true;
+    });
+    if (fits) return { array, columns };
+  }
+  return null;
+}
+
+// Builds the runs. When a factor has fewer levels than its column, its levels repeat in order
+// (the dummy-level technique), so the first levels can get more runs than the others.
+function build(factors) {
+  const match = fit(factors.map((f) => f.levels.length));
+  if (!match) {
+    throw new Error("No plan on this page fits these factors. A factor can have at most 5 levels. A plan can have at most 31 factors with 2 levels, 13 factors with 3 levels, or 6 factors with 4 or 5 levels.");
+  }
+  const rows = Array.from({ length: match.array.runs }, (_, run) =>
+    factors.map((f, i) => f.levels[(match.columns[i].values[run] - 1) % f.levels.length]));
+  const repeats = factors.flatMap((f, i) => {
+    const { levels, values } = match.columns[i];
+    if (levels % f.levels.length === 0) return [];
+    const parts = f.levels.map((level, l) => {
+      const runs = values.filter((v) => (v - 1) % f.levels.length === l).length;
+      return `${level} in ${runs} tests`;
+    });
+    return [`${f.name} has ${new Intl.ListFormat("en").format(parts)}`];
+  });
+  return { name: match.array.name, runs: match.array.runs, rows, repeats };
+}
+
+// Averages the scores at each level of each factor, and sorts the factors by the largest difference first.
+function interpret(factors, rows, scores) {
+  return factors.map((f, i) => {
+    const averages = [...new Set(f.levels)].map((level) => {
+      const runs = rows.flatMap((row, run) => (row[i] === level ? [scores[run]] : []));
+      return { level, average: runs.reduce((sum, score) => sum + score, 0) / runs.length };
+    });
+    const highest = averages.reduce((a, b) => (b.average > a.average ? b : a));
+    const lowest = averages.reduce((a, b) => (b.average < a.average ? b : a));
+    return { name: f.name, highest, lowest, effect: highest.average - lowest.average };
+  }).sort((a, b) => b.effect - a.effect);
+}
+</script>
+<script>
+const input = document.getElementById("input");
+const planSection = document.getElementById("plan");
+const summary = document.getElementById("summary");
+const steps = document.getElementById("steps");
+const download = document.getElementById("download");
+const results = document.getElementById("results");
+const statusLine = document.getElementById("status");
+const reading = document.getElementById("reading");
+const choice = document.getElementById("choice");
+
+let factors = [];
+let plan = null;
+let scores = [];
+let scoresFor = "";
+
+const isNumeric = (values) => values.every((v) => /^[−-]?\d*\.?\d+$/.test(v));
+
+function cell(tag, text, numeric) {
+  const element = document.createElement(tag);
+  element.textContent = text;
+  if (numeric) element.className = "num";
+  return element;
+}
+
+function scoreCell(run) {
+  const td = cell("td", scores[run] || "", true);
+  td.contentEditable = "plaintext-only";
+  td.setAttribute("aria-label", `Score for test ${run + 1}`);
+  td.addEventListener("input", () => { scores[run] = td.textContent.trim(); showResults(); });
+  td.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const next = td.parentElement.nextElementSibling;
+    if (next) next.lastElementChild.focus();
+  });
+  return td;
+}
+
+function buildTable() {
+  const numeric = factors.map((f) => isNumeric(f.levels));
+  const table = document.createElement("table");
+  const head = table.createTHead().insertRow();
+  head.append(cell("th", "Test", true), ...factors.map((f, i) => cell("th", f.name, numeric[i])), cell("th", "Score", true));
+  const body = table.createTBody();
+  plan.rows.forEach((row, run) => {
+    body.insertRow().append(cell("td", run + 1, true), ...row.map((v, i) => cell("td", v, numeric[i])), scoreCell(run));
+  });
+  return table;
+}
+
+function showResults() {
+  results.querySelector("table, .data-table")?.remove();
+  results.hidden = !plan;
+  reading.hidden = choice.hidden = true;
+  if (!plan) return;
+
+  const texts = plan.rows.map((_, run) => (scores[run] || "").trim());
+  const notNumber = texts.findIndex((text) => text && !Number.isFinite(Number(text)));
+  if (notNumber >= 0) {
+    statusLine.textContent = `The score for test ${notNumber + 1} is not a number. Enter a number to see the best levels.`;
+    return;
+  }
+  const entered = texts.filter(Boolean).length;
+  if (entered < texts.length) {
+    // A partial set of tests is not balanced, so its averages would mislead.
+    statusLine.textContent = `After you enter a score for every test, this section shows the best level of each factor. You have entered ${entered} of ${texts.length} scores.`;
+    return;
+  }
+
+  const effects = interpret(factors, plan.rows, texts.map(Number));
+  // Round to one more decimal than the scores have. Number() then drops trailing zeros.
+  const precision = Math.max(2, ...texts.map((text) => (text.split(".")[1] || "").length + 1));
+  const format = (x) => String(Number(x.toFixed(precision))).replace("-", "−");
+  statusLine.textContent = Number(effects[0].effect.toFixed(precision))
+    ? `${effects[0].name} changes the score the most.`
+    : "All levels have the same average score, so no factor changes the score.";
+  reading.hidden = choice.hidden = false;
+  const table = document.createElement("table");
+  table.createTHead().insertRow().append(
+    cell("th", "Factor"), cell("th", "Difference", true), cell("th", "Highest average"), cell("th", "Lowest average"));
+  const body = table.createTBody();
+  for (const { name, effect, highest, lowest } of effects) {
+    body.insertRow().append(
+      cell("td", name),
+      cell("td", format(effect), true),
+      cell("td", `${highest.level}: ${format(highest.average)}`),
+      cell("td", `${lowest.level}: ${format(lowest.average)}`));
+  }
+  results.append(table);
+}
+
+function update() {
+  planSection.querySelector("table, .data-table")?.remove();
+  try {
+    factors = parse(input.innerText);
+    plan = build(factors);
+  } catch (error) {
+    plan = null;
+    summary.textContent = error.message;
+    steps.hidden = true;
+    showResults();
+    return;
+  }
+  // Scores stay while the user renames things, and clear when the runs change.
+  const key = `${plan.name} ${factors.map((f) => f.levels.length)}`;
+  if (key !== scoresFor) scores = [];
+  scoresFor = key;
+
+  const repeated = plan.repeats.length
+    ? ` Some factors have fewer levels than this plan needs, so some of their levels appear more often: ${plan.repeats.join("; ")}. To repeat a different level, list it first.`
+    : "";
+  summary.textContent = `This plan has ${plan.runs} tests.${repeated}`;
+  steps.hidden = false;
+  planSection.append(buildTable());
+  if (typeof makeDataTables === "function") makeDataTables();
+  showResults();
+}
+
+// The browser follows the link right after this handler runs, so the file holds the current scores.
+download.addEventListener("click", () => {
+  const names = factors.map((f) => f.name);
+  const lines = [["Test", ...names, "Score"], ...plan.rows.map((row, run) => [run + 1, ...row, scores[run] || ""])];
+  const csv = lines.map((line) => line.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(",")).join("\r\n");
+  download.href = URL.createObjectURL(new Blob(["﻿", csv], { type: "text/csv" }));
+  download.download = "test-plan.csv";
+});
+
+input.addEventListener("input", update);
+update();
+</script>
+<script>// design-system page.js. Paste verbatim into a <script> at the end of <body>.
+
+// Fingerprint: dark and light segments alternate, so neighbours always differ in lightness for colorblind readers.
+const FINGERPRINT_DARK = ["#004D40", "#005AB5", "#781C6D", "#A63603", "#1E293B"];
+const FINGERPRINT_LIGHT = ["#56B4E9", "#F0E442", "#E69F00", "#66C2A5", "#F4A582"];
+// Asymmetric rhythms (percent of the width), so the shape itself is memorable.
+const FINGERPRINT_RHYTHMS = [
+  [58, 12, 30], [28, 12, 60], [16, 68, 16], [50, 32, 18],
+  [18, 32, 50], [52, 12, 12, 24], [24, 12, 12, 52], [42, 14, 44],
+];
+let fingerprintCount = 0;
+
+// FNV-1a with a Murmur3 finalizer: a one-character change in the seed gives an unrelated hash.
+function hashSeed(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+// Outline with continuous curvature: superellipse caps meet the straight edges with zero
+// curvature, so there is no visible kink where a circular arc would start (metro line curves).
+function squirclePath(width, height, n = 2.5) {
+  const b = height / 2;
+  const a = Math.min(height * 0.7, width / 2);
+  const steps = 24;
+  const cap = (cx, from, to) => {
+    const points = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = from + ((to - from) * i) / steps;
+      const c = Math.cos(t), s = Math.sin(t);
+      points.push(`${(cx + a * Math.sign(c) * Math.abs(c) ** (2 / n)).toFixed(2)},${(b + b * Math.sign(s) * Math.abs(s) ** (2 / n)).toFixed(2)}`);
+    }
+    return points.join(" L");
+  };
+  return `M${a},0 L${width - a},0 L${cap(width - a, -Math.PI / 2, Math.PI / 2)} L${a},${height} L${cap(a, Math.PI / 2, (3 * Math.PI) / 2)} Z`;
+}
+
+// Deterministic: the same seed draws the same picture at any size, so a refresh never changes it.
+function fingerprintSvg(seed, width, height) {
+  const h = hashSeed(seed);
+  const rhythm = FINGERPRINT_RHYTHMS[h % FINGERPRINT_RHYTHMS.length];
+  const startDark = ((h >>> 3) & 1) === 1;
+  let d = (h >>> 4) % FINGERPRINT_DARK.length;
+  let l = (h >>> 8) % FINGERPRINT_LIGHT.length;
+  const dStep = ((h >>> 12) % (FINGERPRINT_DARK.length - 1)) + 1;
+  const lStep = ((h >>> 16) % (FINGERPRINT_LIGHT.length - 1)) + 1;
+  // The 30-degree skew pushes segments sideways; widen the canvas so both ends stay covered.
+  const overhang = Math.ceil(height / Math.tan(Math.PI / 3));
+  const total = width + overhang * 2;
+  let x = -overhang;
+  const rects = rhythm.map((pct, i) => {
+    const dark = i % 2 === 0 ? startDark : !startDark;
+    const color = dark ? FINGERPRINT_DARK[d] : FINGERPRINT_LIGHT[l];
+    if (dark) d = (d + dStep) % FINGERPRINT_DARK.length;
+    else l = (l + lStep) % FINGERPRINT_LIGHT.length;
+    const w = (pct / 100) * total;
+    const rect = `<rect x="${x.toFixed(1)}" y="-4" width="${w.toFixed(1)}" height="${height + 8}" fill="${color}" stroke="#fff" stroke-width="2"/>`;
+    x += w;
+    return rect;
+  }).join("");
+  const id = `fingerprint-${++fingerprintCount}`;
+  const outline = squirclePath(width, height);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+    `<defs><clipPath id="${id}"><path d="${outline}"/></clipPath></defs>` +
+    `<g clip-path="url(#${id})"><g transform="skewX(-30)">${rects}</g></g>` +
+    `<path d="${outline}" fill="none" stroke="rgba(15,23,42,0.18)" stroke-width="2" clip-path="url(#${id})"/></svg>`;
+}
+
+function drawFingerprint() {
+  const seed = document.body.dataset.seed || document.title;
+  for (const el of document.querySelectorAll(".fingerprint")) {
+    el.innerHTML = fingerprintSvg(seed, el.clientWidth, el.clientHeight);
+  }
+  const icon = document.querySelector("link[rel=icon]") || document.head.appendChild(document.createElement("link"));
+  icon.rel = "icon";
+  icon.href = "data:image/svg+xml," + encodeURIComponent(fingerprintSvg(seed, 32, 32));
+}
+
+// Marks the index entry of the section the reader is in, and collapses the fingerprint once the index sticks.
+function trackScroll() {
+  const nav = document.querySelector("nav.index");
+  const list = nav && nav.querySelector(":scope > ol");
+  if (!list) return;
+  const links = new Map();
+  for (const a of nav.querySelectorAll("a[href^='#']")) links.set(a.hash.slice(1), a);
+  const sections = [...document.querySelectorAll("main section[id]")].filter((s) => links.has(s.id));
+  const root = document.documentElement;
+  // A section is current once its heading passes the page's top padding.
+  const line = parseFloat(getComputedStyle(root).getPropertyValue("--page-pad-y"));
+  let shown = null;
+  const update = () => {
+    const style = getComputedStyle(nav);
+    const scrolled = style.position === "sticky" && nav.getBoundingClientRect().top <= parseFloat(style.top);
+    if (scrolled !== root.classList.contains("scrolled")) {
+      root.classList.toggle("scrolled", scrolled);
+      drawFingerprint();
+    }
+    // Sections whose headings sit too close to the end of the page for the highlight to reach belong
+    // to the last section it can reach.
+    const left = root.scrollHeight - innerHeight - scrollY;
+    let current = null, reach = null;
+    for (const s of sections) {
+      const top = s.getBoundingClientRect().top;
+      if (top <= line) current = s;
+      if (top - left <= line) reach = s;
+    }
+    if (current === shown) return;
+    if (shown) links.get(shown.id).removeAttribute("aria-current");
+    shown = current;
+    if (!current) return;
+    links.get(current.id).setAttribute("aria-current", "true");
+    // Keep the highlighted entry, and any it owns, in sight: when it lies outside the visible part
+    // of the list, turn the list (never the page) by a page: below it, the entry goes to the top;
+    // above it, to the bottom.
+    const last = current === reach ? sections[sections.length - 1] : current;
+    const l = list.getBoundingClientRect(), r = links.get(current.id).getBoundingClientRect();
+    if (links.get(last.id).getBoundingClientRect().bottom > l.bottom) list.scrollTop += r.top - l.top;
+    else if (r.top < l.top) list.scrollTop += r.bottom - l.bottom;
+  };
+  window.addEventListener("scroll", update, { passive: true });
+  update();
+}
+
+// Code wraps at spaces like text; a path may also break after each slash, and a
+// comma-separated list after each comma.
+function breakPaths() {
+  for (const code of document.querySelectorAll("code")) {
+    if (code.children.length || code.closest("pre")) continue;
+    if (!/[\/,]/.test(code.textContent)) continue;
+    const parts = code.textContent.split(/(?<=[\/,])/);
+    code.replaceChildren(...parts.flatMap((part, i) => (i ? [document.createElement("wbr"), part] : [part])));
+  }
+}
+
+// Data tables: a table longer than one screen or wider than its column gets search, column
+// visibility, sorting and pagination. Without this script the full table shows as it is.
+const PAGE_ROWS = 25;
+const PLAIN_MAX_ROWS = 15;
+
+function makeDataTables() {
+  for (const table of document.querySelectorAll("main table")) {
+    const head = table.tHead && table.tHead.rows[0];
+    const body = table.tBodies[0];
+    if (!head || !body) continue;
+    const tooWide = table.offsetWidth > maxWidthPx(table) + 1;
+    const dataRows = [...body.rows].filter((r) => !r.classList.contains("group"));
+    if (dataRows.length <= PLAIN_MAX_ROWS && !tooWide) continue;
+    dataTable(table, head, body);
+  }
+}
+
+// The width a table may take: its max-width in px, or a percentage of its container.
+function maxWidthPx(el) {
+  const value = getComputedStyle(el).maxWidth;
+  if (value.endsWith("%")) return (parseFloat(value) / 100) * el.parentElement.clientWidth;
+  return parseFloat(value);
+}
+
+function dataTable(table, head, body) {
+  const original = [...body.rows];
+  const text = new Map(original.map((r) => [r, r.textContent.toLowerCase()]));
+  const columns = [...head.cells];
+  const state = { query: "", sortCol: -1, sortDir: 0, page: 0 };
+
+  const wrap = document.createElement("div");
+  wrap.className = "data-table";
+  wrap.innerHTML =
+    `<div class="data-table-tools"><input type="search" placeholder="Search" aria-label="Search table">` +
+    `<button type="button" aria-expanded="false">Columns</button><div class="data-table-menu" hidden></div></div>` +
+    `<div class="data-table-scroll"></div>` +
+    `<div class="data-table-pager"><span></span><button type="button">Previous</button><button type="button">Next</button></div>`;
+  table.replaceWith(wrap);
+  wrap.querySelector(".data-table-scroll").append(table);
+  const [search] = wrap.getElementsByTagName("input");
+  const [columnsButton, previous, next] = wrap.querySelectorAll("button");
+  const menu = wrap.querySelector(".data-table-menu");
+  const status = wrap.querySelector(".data-table-pager span");
+
+  // Long text gets a readable width; the table scrolls sideways instead of stacking single words.
+  for (const cell of table.querySelectorAll("td")) if (cell.textContent.length > 60) cell.style.minWidth = "24rem";
+
+  // Column visibility: everything starts visible.
+  columns.forEach((th, i) => {
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = true;
+    label.append(checkbox, ` ${th.textContent.trim() || `Column ${i + 1}`}`);
+    checkbox.addEventListener("change", (e) => {
+      for (const row of table.rows) {
+        if (row.cells.length === columns.length) row.cells[i].hidden = !e.target.checked;
+      }
+    });
+    menu.append(label);
+  });
+  columnsButton.addEventListener("click", () => {
+    menu.hidden = !menu.hidden;
+    columnsButton.setAttribute("aria-expanded", String(!menu.hidden));
+  });
+  document.addEventListener("click", (e) => {
+    if (!wrap.querySelector(".data-table-tools").contains(e.target)) menu.hidden = true;
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") menu.hidden = true; });
+
+  // Sorting: ascending, descending, then back to the original order.
+  columns.forEach((th, i) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.append(...th.childNodes);
+    th.append(button);
+    button.addEventListener("click", () => {
+      state.sortDir = state.sortCol === i ? (state.sortDir + 1) % 3 : 1;
+      state.sortCol = state.sortDir ? i : -1;
+      columns.forEach((c) => c.removeAttribute("aria-sort"));
+      if (state.sortDir) th.setAttribute("aria-sort", state.sortDir === 1 ? "ascending" : "descending");
+      state.page = 0;
+      render();
+    });
+  });
+
+  search.addEventListener("input", () => { state.query = search.value.trim().toLowerCase(); state.page = 0; render(); });
+  previous.addEventListener("click", () => { state.page--; render(); });
+  next.addEventListener("click", () => { state.page++; render(); });
+
+  function render() {
+    let rows = original.filter((r) => !r.classList.contains("group"));
+    if (state.query) rows = rows.filter((r) => text.get(r).includes(state.query));
+    if (state.sortDir) {
+      const sign = state.sortDir === 1 ? 1 : -1;
+      rows = rows.map((r) => [sortKey(r.cells[state.sortCol]), r])
+        .sort((a, b) => sign * compareKeys(a[0], b[0]))
+        .map(([, r]) => r);
+    }
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE_ROWS));
+    state.page = Math.min(Math.max(state.page, 0), pages - 1);
+    const start = state.page * PAGE_ROWS;
+    const shown = new Set(rows.slice(start, start + PAGE_ROWS));
+    // Group rows keep their place only in the original order; sorting or searching hides them.
+    const ordered = state.sortDir || state.query ? rows : original;
+    for (const r of original) r.hidden = true;
+    body.append(...ordered);
+    let group = null;
+    for (const r of ordered) {
+      if (r.classList.contains("group")) { group = r; continue; }
+      if (shown.has(r)) { r.hidden = false; if (group) group.hidden = false; }
+    }
+    status.textContent = rows.length
+      ? `Rows ${start + 1} to ${start + shown.size} of ${rows.length}`
+      : "No rows match";
+    previous.disabled = state.page === 0;
+    next.disabled = state.page >= pages - 1;
+  }
+  render();
+}
+
+// A cell sorts by its number when it holds only a number, and by its text otherwise.
+function sortKey(cell) {
+  const text = cell ? cell.textContent.trim() : "";
+  const num = /^[↑↓\-−+]?[\d,.]+%?$/.test(text) ? parseFloat(text.replace(/[,%↑↓]/g, "").replace("−", "-")) : NaN;
+  return { text, num };
+}
+
+function compareKeys(x, y) {
+  if (!x.text || !y.text) return x.text ? -1 : y.text ? 1 : 0;  // empty cells last
+  if (!isNaN(x.num) && !isNaN(y.num)) return x.num - y.num;
+  return x.text.localeCompare(y.text, undefined, { numeric: true });
+}
+
+drawFingerprint();
+trackScroll();
+breakPaths();
+makeDataTables();
+</script>
+</body>
+</html>
